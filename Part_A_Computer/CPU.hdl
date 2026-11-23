@@ -1,0 +1,103 @@
+
+CHIP CPU {
+    IN inM[16],
+       instruction[16],
+       reset;
+
+    OUT outM[16],
+        writeM,
+        addressM[15],
+        pc[15];
+
+    PARTS:
+
+    // Identify A-instruction
+    Not(in=instruction[15], out=isA);
+
+    // A register input selection
+    Mux16(
+        a=instruction,
+        b=aluOut,
+        sel=instruction[15],
+        out=aInput
+    );
+
+    // A register load
+    And(a=instruction[15], b=instruction[5], out=loadAC);
+    Or(a=isA, b=loadAC, out=loadA);
+
+    ARegister(
+        in=aInput,
+        load=loadA,
+        out=aOut,
+        out[0..14]=addressM
+    );
+
+    // D register load
+    And(a=instruction[15], b=instruction[4], out=loadD);
+
+    // ALU input selection
+    Mux16(
+        a=aOut,
+        b=inM,
+        sel=instruction[12],
+        out=aluY
+    );
+
+    // ALU
+    ALU(
+        x=dOut,
+        y=aluY,
+        zx=instruction[11],
+        nx=instruction[10],
+        zy=instruction[9],
+        ny=instruction[8],
+        f=instruction[7],
+        no=instruction[6],
+        out=aluOut,
+        zr=zr,
+        ng=ng
+    );
+
+    // Connect ALU result to output
+    Mux16(
+        a=aluOut,
+        b=aluOut,
+        sel=false,
+        out=outM
+    );
+
+    // D register
+    DRegister(
+        in=aluOut,
+        load=loadD,
+        out=dOut
+    );
+
+    // Memory write
+    And(a=instruction[15], b=instruction[3], out=writeM);
+
+    // Jump conditions
+    Not(in=ng, out=notNg);
+    Not(in=zr, out=notZr);
+
+    And(a=notNg, b=notZr, out=positive);
+
+    And(a=ng, b=instruction[0], out=jlt);
+    And(a=zr, b=instruction[1], out=jeq);
+    And(a=positive, b=instruction[2], out=jgt);
+
+    Or(a=jlt, b=jeq, out=jump1);
+    Or(a=jump1, b=jgt, out=jump);
+
+    And(a=instruction[15], b=jump, out=loadPC);
+
+    // Program Counter
+    PC(
+        in=aOut,
+        load=loadPC,
+        inc=true,
+        reset=reset,
+        out[0..14]=pc
+    );
+}

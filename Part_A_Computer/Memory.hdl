@@ -1,0 +1,68 @@
+
+CHIP Memory {
+    IN in[16],
+       load,
+       address[15];
+
+    OUT out[16];
+
+    PARTS:
+
+    // Separate RAM and screen/keyboard write signals
+    DMux(
+        in=load,
+        sel=address[14],
+        a=loadRAM,
+        b=loadScreenOrKeyboard
+    );
+
+    // Keyboard is read-only
+    Not(in=address[13], out=notAddress13);
+
+    And(
+        a=loadScreenOrKeyboard,
+        b=notAddress13,
+        out=loadScreen
+    );
+
+    // RAM
+    RAM16K(
+        in=in,
+        load=loadRAM,
+        address=address[0..13],
+        out=ramOut
+    );
+
+    // Screen
+    Screen(
+        in=in,
+        load=loadScreen,
+        address=address[0..12],
+        out=screenOut
+    );
+
+    // Keyboard
+    Keyboard(out=keyboardOut);
+
+    // Select RAM or Screen
+    Mux16(
+        a=ramOut,
+        b=screenOut,
+        sel=address[14],
+        out=ramScreenOut
+    );
+
+    // Select Keyboard when address is 24576
+    And(
+        a=address[14],
+        b=address[13],
+        out=isKeyboard
+    );
+
+    Mux16(
+        a=ramScreenOut,
+        b=keyboardOut,
+        sel=isKeyboard,
+        out=out
+    );
+}
