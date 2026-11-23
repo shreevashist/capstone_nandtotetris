@@ -1,9 +1,9 @@
 
-// K = 49
+// K = 59
 // Box starts at row 49
 // Width = 32 pixels (2 words)
 // Height = 20 rows
-// Mehul Srivastava
+// Shree Vashisht
 
 (LOOP)
     // Check keyboard
